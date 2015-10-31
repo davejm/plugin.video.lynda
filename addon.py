@@ -24,6 +24,10 @@ __url__ = sys.argv[0]
 # Get the plugin handle as an integer number.
 __handle__ = int(sys.argv[1])
 
+VISITOR_FILE = 'visitor.txt'
+
+__version__ = addon.getAddonInfo("version")
+
 
 def list_root_options(name):
     """
@@ -222,6 +226,9 @@ def router(paramstring):
             xbmcgui.Dialog().ok(addonname, "Could not load session data")
             return
 
+        if params['action'] != 'play':
+            ga_track(params['action'])
+
         if params['action'] == 'search':
             keyboard = xbmc.Keyboard("", "Search", False)
             keyboard.doModal()
@@ -256,6 +263,7 @@ def router(paramstring):
             # Play a video from a provided URL.
             play_video(s, params['videoId'])
     else:
+        ga_track('list_root_options')
         s = auth.initSession()
         name = None
 
@@ -289,6 +297,47 @@ def router(paramstring):
 
         list_root_options(name)
 
+
+def get_visitorid():
+    visitor_id = util.load_data(addon, VISITOR_FILE)
+    if visitor_id is False:
+        from random import randint
+        visitor_id = str(randint(0, 0x7fffffff))
+        util.save_data(addon, VISITOR_FILE, visitor_id)
+
+    return visitor_id
+
+
+def ga_track(page):
+    try:
+        url = 'https://ssl.google-analytics.com/collect'
+        payload = {
+            'v': 1,
+            'tid': 'UA-23742434-4',
+            'cid': __visitor__,
+            't': 'screenview',
+            'an': 'Lynda.com Kodi Addon',
+            'av': __version__,
+            'cd': page
+        }
+
+        """print("ga URL", url)
+        from pprint import pprint
+        pprint(payload)"""
+
+        headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:11.0) Gecko/20100101 Firefox/11.0'}
+        r = requests.post(url, data=payload, headers=headers)
+        print(r, r.status_code, r.text, r.headers)
+        if r.status_code == 200:
+            return True
+        else:
+            return False
+
+    except:
+        print("ga_link block hit except")
+        return False
+
 if __name__ == '__main__':
+    __visitor__ = get_visitorid()
     # Call the router function and pass the plugin call parameters to it.
     router(sys.argv[2])
