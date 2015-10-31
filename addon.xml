@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="plugin.video.lynda" name="Lynda.com" version="1.0.0" provider-name="David Moodie">
+    <requires>
+		<import addon="xbmc.python" version="3.0"/>
+	</requires>
+	<extension point="xbmc.python.pluginsource" library="addon.py">
+		<provides>video</provides>
+	</extension>
+	<extension point="xbmc.addon.metadata">
+		<platform>all</platform>
+		<summary lang="en">Watch Lynda.com courses</summary>
+		<description lang="en">Allows you to watch courses provided by Lynda.com</description>
+		<license>GNU General Public License, v2</license>
+		<language>en</language>
+		<source>https://github.com/davejm/plugin.video.lynda</source>
+		<website>http://www.davidmoodie.com</website>
+		<disclaimer lang="en">All content belongs to Lynda.com and an account is required to view premium content.</disclaimer>
+	</extension>
+</addon>
