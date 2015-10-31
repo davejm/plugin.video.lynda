@@ -1,5 +1,5 @@
 ﻿"""
-@author David Moodie
+@author: David Moodie
 """
 
 import xbmcaddon

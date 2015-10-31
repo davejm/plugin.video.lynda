@@ -1,5 +1,5 @@
 """
-@author David Moodie
+@author: David Moodie
 """
 
 # Note that these functions are taken from the xbmc / Kodi 'common' library and
