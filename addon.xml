@@ -14,6 +14,6 @@
 		<language>en</language>
 		<source>https://github.com/davejm/plugin.video.lynda</source>
 		<website>http://www.davidmoodie.com</website>
-		<disclaimer lang="en">All content belongs to Lynda.com and an account is required to view premium content.</disclaimer>
+		<disclaimer lang="en">All video content streamed by this addon belongs to Lynda.com and an account is required to view premium content.</disclaimer>
 	</extension>
 </addon>
