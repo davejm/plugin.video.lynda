@@ -132,7 +132,7 @@ def org_login(s, username, password, orgURL, LDEBUG=False):
 
     r5 = s.post(postURL, data=payload)
 
-    if r5.url != 'http://www.lynda.com/member.aspx':
+    if r5.url != 'http://www.lynda.com/member':
         return False
     else:
         name = getName(r5.text)
