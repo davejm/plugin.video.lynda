@@ -11,7 +11,7 @@
         <setting label="Library Card Number" type="text" enable="eq(-4,Library)" id="libraryCardNum" default="" />
         <setting label="Library Card Pin" type="text" id="libraryCardPin" option="hidden"  enable="eq(-5,Library)+!eq(-1,)" default=""/>
 
-        <setting label="Organisation website/domain" type="text"   id="org_url" enable="!eq(-6,None)" default="stchlibrary.org"/>
+        <setting label="Organisation website/domain" type="text"   id="org_url" enable="!eq(-6,None)" default="sheffield.ac.uk"/>
         <setting id="debug" type="bool" label="Debug" default="false"/>
     </category>
 </settings>
