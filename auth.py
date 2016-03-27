@@ -155,9 +155,9 @@ def library_login(s, libCardNum, libCardPin, orgDomain, LDEBUG=False):
     for i, inp in enumerate(login_form['input_names']):
         if login_form['input_types'][i] != "hidden" and login_form['input_values'][i] == "":
             if inp == "libraryCardNumber":
-                login_form['input_values'][i] = libraryCardNumber
+                login_form['input_values'][i] = libCardNum
             elif inp == "libraryCardPin":
-                login_form['input_values'][i] = libraryCardPin
+                login_form['input_values'][i] = libCardPin
     # print(login_form['input_values'])
 
     payload = {}
