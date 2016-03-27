@@ -267,23 +267,38 @@ def router(paramstring):
         s = auth.initSession()
         name = None
 
+        DEBUG = xbmcplugin.getSetting(__handle__, "debug")
+        DEBUG = DEBUG == 'true'
+        print("DEBUG VAR: ", DEBUG)
+
         auth_type = xbmcplugin.getSetting(__handle__, "auth_type")
         if auth_type == "Organisation":
             username = xbmcplugin.getSetting(__handle__, "username")
             password = xbmcplugin.getSetting(__handle__, "password")
             org_url = xbmcplugin.getSetting(__handle__, "org_url")
-            DEBUG = xbmcplugin.getSetting(__handle__, "debug")
-            if DEBUG == 'false':
-                DEBUG = False
-            else:
-                DEBUG = True
-            print("DEBUG VAR: ", DEBUG)
 
             ret = auth.org_login(s,
                                  username=username,
                                  password=password,
                                  orgURL=org_url,
                                  LDEBUG=DEBUG)
+
+            if ret != False:
+                name = ret
+            else:
+                xbmcgui.Dialog().ok(addonname,
+                                    "Could not login.",
+                                    "Please check your credentials are correct.")
+        elif auth_type == "Library":
+            libraryCardNum = xbmcplugin.getSetting(__handle__, "libraryCardNum")
+            libraryCardPin = xbmcplugin.getSetting(__handle__, "libraryCardPin")
+            org_url = xbmcplugin.getSetting(__handle__, "org_url")
+
+            ret = auth.library_login(s,
+                                     libCardNum=libraryCardNum,
+                                     libCardPin=libraryCardPin,
+                                     orgDomain=org_url,
+                                     LDEBUG=DEBUG)
 
             if ret != False:
                 name = ret
