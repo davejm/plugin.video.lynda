@@ -16,10 +16,10 @@ def dbg(*strings):
         print("DEBUG: " + str)
 
 
-def getForm(html):
+def getForm(html, formIndex=0):
     formObj = {}
     formObj['action'] = pd(html, "form", ret="action")[0]
-    form = pd(html, "form")[0]
+    form = pd(html, "form")[formIndex]
 
     inputs_html = pd(form, "input")
     input_types = pd(form, "input", ret="type")
@@ -136,4 +136,39 @@ def org_login(s, username, password, orgURL, LDEBUG=False):
         return False
     else:
         name = getName(r5.text)
+        return name
+
+
+def library_login(s, libCardNum, libCardPin, orgDomain, LDEBUG=False):
+    global DEBUG
+    DEBUG = LDEBUG
+
+    libraryLoginURL = "https://www.lynda.com/portal/sip"
+
+    payload = {
+        "org": orgDomain
+    }
+
+    r = s.get(libraryLoginURL, data=payload)
+    login_form = getForm(r.text, 1)
+
+    for i, inp in enumerate(login_form['input_names']):
+        if login_form['input_types'][i] != "hidden" and login_form['input_values'][i] == "":
+            if inp == "libraryCardNumber":
+                login_form['input_values'][i] = libraryCardNumber
+            elif inp == "libraryCardPin":
+                login_form['input_values'][i] = libraryCardPin
+    # print(login_form['input_values'])
+
+    payload = {}
+    for i in range(len(login_form['input_names'])):
+        payload[login_form['input_names'][i]] = login_form['input_values'][i]
+    # print(payload)
+
+    r2 = s.post(libraryLoginURL + '?org=' + orgDomain, data=payload)
+
+    if r2.url != 'http://www.lynda.com/member':
+        return False
+    else:
+        name = getName(r2.text)
         return name
