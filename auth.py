@@ -6,6 +6,8 @@ import resources.lib.requests as requests
 from resources.lib.parsedom import parseDOM as pd
 from resources.lib.parsedom import stripTags
 
+# from xbmc import log
+
 DEBUG = False
 
 
@@ -18,8 +20,11 @@ def dbg(*strings):
 
 def getForm(html, formIndex=0):
     formObj = {}
-    formObj['action'] = pd(html, "form", ret="action")[0]
     form = pd(html, "form")[formIndex]
+    try:
+        formObj['action'] = pd(html, "form", ret="action")[0]  # TODO: Use indexed form html
+    except:
+        formObj['action'] = None
 
     inputs_html = pd(form, "input")
     input_types = pd(form, "input", ret="type")
@@ -47,7 +52,6 @@ def initSession():
     s = requests.Session()
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.85 Safari/537.36"}
     s.headers.update(headers)
-    r = s.get("http://www.lynda.com")
 
     return s
 
@@ -55,6 +59,8 @@ def initSession():
 def org_login(s, username, password, orgURL, LDEBUG=False):
     global DEBUG
     DEBUG = LDEBUG
+
+    s.get("http://www.lynda.com")  # Set initial cookies
 
     ShibCasLoginByOrg = "https://www.lynda.com/user/shibcasloginbyorg"
 
@@ -149,7 +155,10 @@ def library_login(s, libCardNum, libCardPin, orgDomain, LDEBUG=False):
         "org": orgDomain
     }
 
-    r = s.get(libraryLoginURL, data=payload)
+    r = s.get(libraryLoginURL, params=payload)
+    # log(str(r))
+    # log(r.text)
+
     login_form = getForm(r.text, 1)
 
     for i, inp in enumerate(login_form['input_names']):
@@ -162,7 +171,10 @@ def library_login(s, libCardNum, libCardPin, orgDomain, LDEBUG=False):
 
     payload = {}
     for i in range(len(login_form['input_names'])):
-        payload[login_form['input_names'][i]] = login_form['input_values'][i]
+        try:
+            payload[login_form['input_names'][i]] = login_form['input_values'][i]
+        except:
+            payload[login_form['input_names'][i]] = ''
     # print(payload)
 
     r2 = s.post(libraryLoginURL + '?org=' + orgDomain, data=payload)
