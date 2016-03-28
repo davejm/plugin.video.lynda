@@ -158,7 +158,7 @@ def library_login(s, libCardNum, libCardPin, orgDomain, LDEBUG=False):
     r = s.get(libraryLoginURL, params=payload)
     # log(str(r))
     # log(r.text)
-    log("lib login url: " + r.url)
+    # log("lib login url: " + r.url)
 
     # login_form = getForm(r.text, 1)
     """for i, inp in enumerate(login_form['input_names']):
@@ -187,11 +187,11 @@ def library_login(s, libCardNum, libCardPin, orgDomain, LDEBUG=False):
         "org": orgDomain,
         "seasurf": seasurf_sec_token
     }
-    from pprint import pformat
-    log(pformat(payload))
+    # from pprint import pformat
+    # log(pformat(payload))
 
     r2 = s.post(libraryLoginURL + '?org=' + orgDomain, data=payload)
-    log("lib login post url: " + r2.url)
+    # log("lib login post url: " + r2.url)
     if r2.url != 'http://www.lynda.com/member':
         return False
     else:
