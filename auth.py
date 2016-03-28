@@ -6,7 +6,7 @@ import resources.lib.requests as requests
 from resources.lib.parsedom import parseDOM as pd
 from resources.lib.parsedom import stripTags
 
-# from xbmc import log
+from xbmc import log
 
 DEBUG = False
 
@@ -158,10 +158,10 @@ def library_login(s, libCardNum, libCardPin, orgDomain, LDEBUG=False):
     r = s.get(libraryLoginURL, params=payload)
     # log(str(r))
     # log(r.text)
+    log("lib login url: " + r.url)
 
-    login_form = getForm(r.text, 1)
-
-    for i, inp in enumerate(login_form['input_names']):
+    # login_form = getForm(r.text, 1)
+    """for i, inp in enumerate(login_form['input_names']):
         if login_form['input_types'][i] != "hidden" and login_form['input_values'][i] == "":
             if inp == "libraryCardNumber":
                 login_form['input_values'][i] = libCardNum
@@ -176,9 +176,22 @@ def library_login(s, libCardNum, libCardPin, orgDomain, LDEBUG=False):
         except:
             payload[login_form['input_names'][i]] = ''
     # print(payload)
+    """
+
+    form = pd(r.text, "form")[1]
+    seasurf_sec_token = pd(form, "input", attrs={"name": "seasurf"}, ret="value")[0].encode("utf-8")
+    payload = {
+        "libraryCardNumber": libCardNum,
+        "libraryCardPin": libCardPin,
+        "libraryCardPasswordVerify": "",
+        "org": orgDomain,
+        "seasurf": seasurf_sec_token
+    }
+    from pprint import pformat
+    log(pformat(payload))
 
     r2 = s.post(libraryLoginURL + '?org=' + orgDomain, data=payload)
-
+    log("lib login post url: " + r2.url)
     if r2.url != 'http://www.lynda.com/member':
         return False
     else:
