@@ -160,24 +160,6 @@ def library_login(s, libCardNum, libCardPin, orgDomain, LDEBUG=False):
     # log(r.text)
     # log("lib login url: " + r.url)
 
-    # login_form = getForm(r.text, 1)
-    """for i, inp in enumerate(login_form['input_names']):
-        if login_form['input_types'][i] != "hidden" and login_form['input_values'][i] == "":
-            if inp == "libraryCardNumber":
-                login_form['input_values'][i] = libCardNum
-            elif inp == "libraryCardPin":
-                login_form['input_values'][i] = libCardPin
-    # print(login_form['input_values'])
-
-    payload = {}
-    for i in range(len(login_form['input_names'])):
-        try:
-            payload[login_form['input_names'][i]] = login_form['input_values'][i]
-        except:
-            payload[login_form['input_names'][i]] = ''
-    # print(payload)
-    """
-
     form = pd(r.text, "form")[1]
     seasurf_sec_token = pd(form, "input", attrs={"name": "seasurf"}, ret="value")[0].encode("utf-8")
     payload = {
