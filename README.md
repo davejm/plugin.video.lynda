@@ -11,6 +11,6 @@ I made this plugin as there seemed to be a demand for it and it didn't exist. I 
 
 # Notes
 
-- Currently the only supported account login type is 'Organisational' but I hope to implement functionality to login 'normal' Lynda.com accounts as well.
+- Currently the supported account login types are 'Organisational' and Library Logins but I hope to implement functionality to login 'normal' Lynda.com accounts as well if I can get people to test this.
 
 - Currently, some of the lists of items returned by the parser are quite long as I haven't implemented any form of pagination yet. I may do this in the future.
