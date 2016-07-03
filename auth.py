@@ -8,6 +8,8 @@ from resources.lib.parsedom import stripTags
 
 from xbmc import log
 
+import json
+
 DEBUG = False
 
 
@@ -42,7 +44,7 @@ def getName(html):
     # Tested on members page
     try:
         drop_menu = pd(html, "span", attrs={"data-qa": "eyebrow_account_menu"})[0]
-        name = stripTags(drop_menu)[4:]
+        name = stripTags(drop_menu)[3:]
     except:
         name = "Can't get name"
     return name
@@ -60,19 +62,29 @@ def org_login(s, username, password, orgURL, LDEBUG=False):
     global DEBUG
     DEBUG = LDEBUG
 
-    s.get("http://www.lynda.com")  # Set initial cookies
+    # Set initial cookies
+    init = s.get("http://www.lynda.com/signin/organization")
 
-    ShibCasLoginByOrg = "https://www.lynda.com/user/shibcasloginbyorg"
+    # Get the lynda javascript var from page and parse out the auth key needed
+    # for ajax request header
+    lyndaVar = init.text.split("var lynda = ")[1].split(";")[0]
+    lyndaVarJSON = json.loads(lyndaVar)
+    weirdAuthKey = lyndaVarJSON['-_-']
 
-    payload = {
-        "org": orgURL,
-        "courseId": 0,
-        "videoId": 0
-    }
+    ShibCasLoginByOrg = "https://www.lynda.com/ajax/signin/organization"
 
-    r = s.post(ShibCasLoginByOrg, data=payload)
-    portalURL = r.json()['portalURL']
-    dbg("r portalURL", portalURL)
+    payload = {"org": orgURL}
+
+    r = s.post(ShibCasLoginByOrg, data=payload, headers={"-_-": weirdAuthKey})
+    # log(r.text)
+
+    try:
+        portalURL = r.json()['AuthUrl']
+    except:
+        portalURL = r.json()['RedirectUrl']
+
+    # log("r portalURL")
+    # log(portalURL)
     r2 = s.get(portalURL)  # GET the 'portal' (org) login page
     login_form = getForm(r2.text)
     doneUsername = False
@@ -91,12 +103,13 @@ def org_login(s, username, password, orgURL, LDEBUG=False):
         postURL = "/".join(r2.url.split("/")[:3]) + login_form['action']
     else:
         postURL = login_form['action']
-    dbg("r2 postURL", postURL)
+    # log("r2 postURL")
+    # log(postURL)
 
     payload = {}
     for i in range(len(login_form['input_names'])):
         payload[login_form['input_names'][i]] = login_form['input_values'][i]
-    # print(payload)
+    # log(str(payload))
 
     # Assuming login form uses post method. Account for this if time
     r3 = s.post(postURL, data=payload)  # Attempt to login to institution
@@ -107,7 +120,8 @@ def org_login(s, username, password, orgURL, LDEBUG=False):
         postURL = "/".join(r2.url.split("/")[:3]) + saml_form['action']
     else:
         postURL = saml_form['action']
-    dbg("saml postURL", postURL)
+    # log("saml postURL")
+    # log(postURL)
 
     payload = {}
     for i in range(len(saml_form['input_names'])):
@@ -130,15 +144,18 @@ def org_login(s, username, password, orgURL, LDEBUG=False):
         postURL = "/".join(r2.url.split("/")[:3]) + shib_form['action']
     else:
         postURL = shib_form['action']
-    dbg("shib postURL", postURL)
+    # log("shib postURL")
+    # log(postURL)
 
     payload = {}
     for i in range(len(shib_form['input_names'])):
         payload[shib_form['input_names'][i]] = shib_form['input_values'][i]
 
     r5 = s.post(postURL, data=payload)
+    # log("r5 url")
+    # log(r5.url)
 
-    if r5.url != 'http://www.lynda.com/member':
+    if r5.url != 'http://www.lynda.com/member' and r5.url != 'https://www.lynda.com/member':
         return False
     else:
         name = getName(r5.text)
@@ -174,7 +191,7 @@ def library_login(s, libCardNum, libCardPin, orgDomain, LDEBUG=False):
 
     r2 = s.post(libraryLoginURL + '?org=' + orgDomain, data=payload)
     # log("lib login post url: " + r2.url)
-    if r2.url != 'http://www.lynda.com/member':
+    if r2.url != 'http://www.lynda.com/member' and r2.url != 'https://www.lynda.com/member':
         return False
     else:
         name = getName(r2.text)
