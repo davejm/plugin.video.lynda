@@ -155,7 +155,7 @@ def org_login(s, username, password, orgURL, LDEBUG=False):
     # log("r5 url")
     # log(r5.url)
 
-    if r5.url != 'http://www.lynda.com/member' and r5.url != 'https://www.lynda.com/member':
+    if r5.url != 'http://www.lynda.com/member' and r5.url != 'https://www.lynda.com/member' and r5.url != 'https://www.lynda.com/':
         return False
     else:
         name = getName(r5.text)
@@ -191,7 +191,7 @@ def library_login(s, libCardNum, libCardPin, orgDomain, LDEBUG=False):
 
     r2 = s.post(libraryLoginURL + '?org=' + orgDomain, data=payload)
     # log("lib login post url: " + r2.url)
-    if r2.url != 'http://www.lynda.com/member' and r2.url != 'https://www.lynda.com/member':
+    if r2.url != 'http://www.lynda.com/member' and r2.url != 'https://www.lynda.com/member' and r2.url != 'https://www.lynda.com/':
         return False
     else:
         name = getName(r2.text)
