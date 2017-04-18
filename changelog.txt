@@ -3,3 +3,4 @@
 1.0.2 Added support for Library account login
 1.0.3 Fixed breaks introduced by Lynda login page relocation and redesign
 1.0.4 Fix successful login url check
+1.0.5 Bug fixes including to the search and course browse functions
