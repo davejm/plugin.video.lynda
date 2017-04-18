@@ -2,11 +2,13 @@
 @author: David Moodie
 """
 
-import resources.lib.requests as requests
+import requests
 from resources.lib.parsedom import parseDOM as pd
 from resources.lib.parsedom import stripTags
 
 import time
+
+from xbmc import log
 
 
 def get_video(s, videoId):
@@ -62,25 +64,23 @@ def course_search(s, query):
     r = s.get(url, params=payload)
     page_html = r.text
 
-    courselist = pd(page_html, "ul", attrs={"class": "course-list search-movies"})
-    # print(repr(courselist))
+    courselist = pd(page_html, "ul", attrs={"id": "search-results-list"})
+    # log(repr(courselist))
     courses = pd(courselist, "li")
-    course_ids = pd(courselist, "li", ret="id")
-    course_thumbs = pd(courselist, "img", ret="data-img-src")
-    course_descriptions = pd(courselist, "p", attrs={"class": "highlights"})
-
-    # print("Number of courses found:", len(courses))
-    # print(courses)
+    course_thumbs = pd(courselist, "img", ret="src")
+    course_descriptions = pd(courselist, "div", attrs={"class": "meta-description"})
     course_list = []
 
     for i, course in enumerate(courses):
-        title = stripTags( pd(course, "a", attrs={"class": "title"})[0] )
-        # print(title)
+        search_result = pd(course, "div", attrs={"class": "card card-list-style search-result course"}, ret="id")
+        if len(search_result) == 0: continue
 
-        courseId = course_ids[i][7:]
-        thumbURL = course_thumbs[i]
+        title = stripTags(pd(course, "h2")[0])
+        courseId = search_result[0]
 
-        shortDesc = stripTags(course_descriptions[i]).strip()
+        thumbnail_el = pd(course, "div", attrs={"class": "thumbnail"})[0]
+        thumbURL = pd(thumbnail_el, "img", ret="data-lazy-src")[0]
+        shortDesc = stripTags(pd(course, "div", attrs={"class": "meta-description hidden-xs"})[0]).strip()
 
         c = {
             "title": title,
@@ -88,6 +88,9 @@ def course_search(s, query):
             "thumbURL": thumbURL,
             "shortDesc": shortDesc
         }
+
+        # log(str(c))
+
         course_list.append(c)
 
     return course_list

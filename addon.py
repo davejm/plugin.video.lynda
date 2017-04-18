@@ -10,7 +10,7 @@ import sys
 from urlparse import parse_qsl
 from urllib import urlencode
 
-import resources.lib.requests as requests
+import requests
 
 import scrape
 import auth

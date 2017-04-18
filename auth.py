@@ -2,7 +2,7 @@
 @author: David Moodie
 """
 
-import resources.lib.requests as requests
+import requests
 from resources.lib.parsedom import parseDOM as pd
 from resources.lib.parsedom import stripTags
 
