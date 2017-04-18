@@ -64,23 +64,38 @@ def course_search(s, query):
     r = s.get(url, params=payload)
     page_html = r.text
 
-    courselist = pd(page_html, "ul", attrs={"id": "search-results-list"})
+    return parse_course_lists(page_html)
+
+def parse_course_lists(html, is_text_search=True):
+    """Takes the page html with the list of courses and returns a list of course objects (dicts)"""
+
+    if is_text_search:
+        ul_id = "search-results-list"
+        course_class = "card card-list-style search-result course"
+        description_class = "meta-description hidden-xs"
+        title_el = "h2"
+    else:
+        ul_id = "category-courses"
+        course_class = "card card-list-style course"
+        description_class = "meta-description hidden-xs dot-ellipsis dot-resize-update"
+        title_el = "h3"
+
+    courselist = pd(html, "ul", attrs={"id": ul_id})
+    # log("<<<<<<<<<<<<<<<<<DEBUG>>>>>>>>>>>>>>>>>>>>")
     # log(repr(courselist))
     courses = pd(courselist, "li")
-    course_thumbs = pd(courselist, "img", ret="src")
-    course_descriptions = pd(courselist, "div", attrs={"class": "meta-description"})
     course_list = []
 
     for i, course in enumerate(courses):
-        search_result = pd(course, "div", attrs={"class": "card card-list-style search-result course"}, ret="id")
+        search_result = pd(course, "div", attrs={"class": course_class}, ret="id")
         if len(search_result) == 0: continue
 
-        title = stripTags(pd(course, "h2")[0])
+        title = stripTags(pd(course, title_el)[0])
         courseId = search_result[0]
 
         thumbnail_el = pd(course, "div", attrs={"class": "thumbnail"})[0]
         thumbURL = pd(thumbnail_el, "img", ret="data-lazy-src")[0]
-        shortDesc = stripTags(pd(course, "div", attrs={"class": "meta-description hidden-xs"})[0]).strip()
+        shortDesc = stripTags(pd(course, "div", attrs={"class": description_class})[0]).strip()
 
         c = {
             "title": title,
@@ -133,34 +148,8 @@ def get_category_letter_software(s, search_letter):
 
 def courses_for_category(s, link):
     r = s.get(link)
-    courselist = pd(r.text, "ul", attrs={"class": "course-list"})
-    # print(repr(courselist))
-    courses = pd(courselist, "li")
-    course_ids = pd(courselist, "li", ret="id")
-    course_thumbs = pd(courselist, "img", ret="data-img-src")
-    course_descriptions = pd(courselist, "p")
-    # print("Number of courses found:", len(courses))
-
-    course_list = []
-    for i, course in enumerate(courses):
-        title_heading = pd(course, "h3")[0]
-        title = stripTags(pd(title_heading, "a")[0].strip())
-        # print(title)
-
-        courseId = course_ids[i][7:]
-        thumbURL = course_thumbs[i]
-
-        shortDesc = stripTags(course_descriptions[i]).strip()
-
-        c = {
-            "title": title,
-            "courseId": courseId,
-            "thumbURL": thumbURL,
-            "shortDesc": shortDesc
-        }
-        course_list.append(c)
-
-    return course_list
+    page_html = r.text
+    return parse_course_lists(page_html, False)
 
 
 def get_my_courses(s):
