@@ -229,7 +229,7 @@ def normal_login(s, username, password):
 
     # We should be signed in now
 
-    s.get('https://www.lynda.com/')
+    home_page_r = s.get('https://www.lynda.com/')
 
-    name = getName(signin_user_r.text)
+    name = getName(home_page_r.text)
     return name
