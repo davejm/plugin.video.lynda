@@ -307,6 +307,19 @@ def router(paramstring):
                                     "Could not login.",
                                     "Please check your credentials are correct.")
 
+        elif auth_type == "Normal Lynda.com Account":
+            username = xbmcplugin.getSetting(__handle__, "username")
+            password = xbmcplugin.getSetting(__handle__, "password")
+
+            ret = auth.normal_login(s, username=username, password=password)
+
+            if ret != False:
+                name = ret
+            else:
+                xbmcgui.Dialog().ok(addonname,
+                                    "Could not login.",
+                                    "Please check your credentials are correct.")
+
         if not util.save_data(addon, "lynda_session", s):
             xbmcgui.Dialog().ok(addonname, "Could not save requests session")
 

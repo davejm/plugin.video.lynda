@@ -58,6 +58,12 @@ def initSession():
     return s
 
 
+def get_lynda_auth_key(html_page):
+    lyndaVar = html_page.split("var lynda = ")[1].split(";")[0]
+    lyndaVarJSON = json.loads(lyndaVar)
+    weirdAuthKey = lyndaVarJSON['-_-']
+    return weirdAuthKey
+
 def org_login(s, username, password, orgURL, LDEBUG=False):
     global DEBUG
     DEBUG = LDEBUG
@@ -67,9 +73,7 @@ def org_login(s, username, password, orgURL, LDEBUG=False):
 
     # Get the lynda javascript var from page and parse out the auth key needed
     # for ajax request header
-    lyndaVar = init.text.split("var lynda = ")[1].split(";")[0]
-    lyndaVarJSON = json.loads(lyndaVar)
-    weirdAuthKey = lyndaVarJSON['-_-']
+    weirdAuthKey = get_lynda_auth_key(init.text)
 
     ShibCasLoginByOrg = "https://www.lynda.com/ajax/signin/organization"
 
@@ -195,4 +199,36 @@ def library_login(s, libCardNum, libCardPin, orgDomain, LDEBUG=False):
         return False
     else:
         name = getName(r2.text)
+        return name
+
+def normal_login(s, username, password):
+    # Set initial cookies
+    init = s.get("http://www.lynda.com/signin")
+
+    # Get the lynda javascript var from page and parse out the auth key needed
+    # for ajax request header
+    auth_key = get_lynda_auth_key(init.text)
+
+    check_username_url = "https://www.lynda.com/ajax/signin/password"
+    payload = {"-_-": auth_key, "email": username}
+    check_username_r = s.post(check_username_url, data=payload, headers={"-_-": auth_key, "X-Requested-With": "XMLHttpRequest"})
+
+    if check_username_r.status_code != 200:
+        # Username/email doesn't exist. Probably got a 500 internal error.
+        return False
+
+    new_token = check_username_r.json()['token']
+
+    signin_url = "https://www.lynda.com/ajax/signin/user"
+    payload = {"-_-": auth_key, "email": username, "password": password}
+    signin_user_r = s.post(signin_url, data=payload, headers={"-_-": auth_key, "X-Requested-With": "XMLHttpRequest"})
+
+    if signin_user_r.status_code != 200:
+        # Username or password is invalid probably.
+        return False
+
+    if signin_user_r.url != 'http://www.lynda.com/member' and signin_user_r.url != 'https://www.lynda.com/member' and signin_user_r.url != 'https://www.lynda.com/':
+        return False
+    else:
+        name = getName(signin_user_r.text)
         return name
