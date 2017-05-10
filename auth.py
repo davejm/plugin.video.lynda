@@ -220,8 +220,8 @@ def normal_login(s, username, password):
     new_token = check_username_r.json()['token']
 
     signin_url = "https://www.lynda.com/ajax/signin/user"
-    payload = {"-_-": auth_key, "email": username, "password": password}
-    signin_user_r = s.post(signin_url, data=payload, headers={"-_-": auth_key, "X-Requested-With": "XMLHttpRequest"})
+    payload = {"-_-": new_token, "email": username, "password": password}
+    signin_user_r = s.post(signin_url, data=payload, headers={"-_-": new_token, "X-Requested-With": "XMLHttpRequest"})
 
     if signin_user_r.status_code != 200:
         # Username or password is invalid probably.
