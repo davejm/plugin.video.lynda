@@ -227,8 +227,9 @@ def normal_login(s, username, password):
         # Username or password is invalid probably.
         return False
 
-    if signin_user_r.url != 'http://www.lynda.com/member' and signin_user_r.url != 'https://www.lynda.com/member' and signin_user_r.url != 'https://www.lynda.com/':
-        return False
-    else:
-        name = getName(signin_user_r.text)
-        return name
+    # We should be signed in now
+
+    s.get('https://www.lynda.com/')
+
+    name = getName(signin_user_r.text)
+    return name
