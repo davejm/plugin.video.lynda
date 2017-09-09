@@ -77,9 +77,30 @@ class LyndaApi:
         resp = self._get(endpoint, params)
         return resp.url
 
+
+    def course_chapters(self, course_id):
+        endpoint = '/course/{0}'.format(course_id)
+        params = {
+            "filter.includes": "ID,Chapters.ID,Chapters.Title"
+        }
+        resp = self._get(endpoint, params).json()
+        chapters = []
+        for chapter in resp['Chapters']:
+            chapters.append(Chapter(
+                chapter['ID'],
+                chapter['Title']
+            ))
+        return chapters
+
+
 class Course:
     def __init__(self, title, course_id, thumb_url, description):
         self.title = title
         self.course_id = course_id
         self.thumb_url = thumb_url
         self.description = description
+
+class Chapter:
+    def __init__(self, chapter_id, title):
+        self.chapter_id = chapter_id
+        self.title = title

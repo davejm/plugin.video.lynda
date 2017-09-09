@@ -68,9 +68,24 @@ class LyndaAddon:
         listing = []
         for course in courses:
             list_item = xbmcgui.ListItem(label=course.title, thumbnailImage=course.thumb_url)
-            url = '{0}?action=list_course_chapters&courseId={1}'.format(__url__, course.course_id)
+            url = '{0}?action=list_course_chapters&course_id={1}'.format(__url__, course.course_id)
             is_folder = True
             list_item.setInfo("video", {"plot": course.description})
+            listing.append((url, list_item, is_folder))
+
+        self.show_listing(listing)
+
+
+    def list_course_chapters(self, course_id):
+        """Show the list of course chapters in the Kodi interface."""
+
+        chapters = self.api.course_chapters(course_id)
+
+        listing = []
+        for chapter in chapters:
+            list_item = xbmcgui.ListItem(label=chapter.title)
+            url = '{0}?action=list_course_chapter_videos&course_id={1}&chapter_id={2}'.format(__url__, course_id, chapter.chapter_id)
+            is_folder = True
             listing.append((url, list_item, is_folder))
 
         self.show_listing(listing)
@@ -98,13 +113,15 @@ class LyndaAddon:
         if params:
             if params['action'] == 'search':
                 self.search()
+            elif params['action'] == 'list_course_chapters':
+                self.list_course_chapters(params['course_id'])
         else:
             name = None
             self.list_root_options(name)
 
 
 if __name__ == '__main__':
-    lyndaAddon = LyndaAddon()
+    lynda_addon = LyndaAddon()
 
     # Call the router function and pass the plugin call parameters to it
-    lyndaAddon.router(sys.argv[2])
+    lynda_addon.router(sys.argv[2])
