@@ -84,8 +84,24 @@ class LyndaAddon:
         listing = []
         for chapter in chapters:
             list_item = xbmcgui.ListItem(label=chapter.title)
-            url = '{0}?action=list_course_chapter_videos&course_id={1}&chapter_id={2}'.format(__url__, course_id, chapter.chapter_id)
+            url = '{0}?action=list_chapter_videos&course_id={1}&chapter_id={2}'.format(__url__, course_id, chapter.chapter_id)
             is_folder = True
+            listing.append((url, list_item, is_folder))
+
+        self.show_listing(listing)
+
+
+    def list_chapter_videos(self, course_id, chapter_id):
+        """Show a list of playable videos within a chapter in the Kodi interface."""
+
+        videos = self.api.chapter_videos(course_id, chapter_id)
+
+        listing = []
+        for video in videos:
+            list_item = xbmcgui.ListItem(label=video.title)
+            list_item.setProperty('IsPlayable', 'true')
+            url = '{0}?action=play&video_id={1}'.format(__url__, video.video_id)
+            is_folder = False
             listing.append((url, list_item, is_folder))
 
         self.show_listing(listing)
@@ -114,7 +130,9 @@ class LyndaAddon:
             if params['action'] == 'search':
                 self.search()
             elif params['action'] == 'list_course_chapters':
-                self.list_course_chapters(params['course_id'])
+                self.list_course_chapters(int(params['course_id']))
+            elif params['action'] == 'list_chapter_videos':
+                self.list_chapter_videos(int(params['course_id']), int(params['chapter_id']))
         else:
             name = None
             self.list_root_options(name)

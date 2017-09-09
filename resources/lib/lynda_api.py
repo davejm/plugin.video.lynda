@@ -93,6 +93,27 @@ class LyndaApi:
         return chapters
 
 
+    # TODO: Consolidate with course_chapters call (cache initial response?)
+    def chapter_videos(self, course_id, chapter_id):
+        endpoint = '/course/{0}'.format(course_id)
+        params = {
+            "filter.includes": "ID,Title,Description,DurationInSeconds,CourseTimes,Flags,DateOriginallyReleasedUtc,DateReleasedUtc,DateUpdatedUtc,URLs,LastVideoViewedId,Chapters.ID,Chapters.Title,Chapters.Videos.HasAccess,Chapters.Videos.ID,Chapters.Videos.DurationInSeconds,Chapters.Videos.CourseID,Chapters.Videos.Title,Chapters.Videos.FileName,Chapters.Videos.Watched,Authors.ID,Authors.Fullname,Authors.Bio,Authors.Thumbnails,Tags.ID,Tags.Type,Tags.Name,SuggestedCourses,PlaylistIds,OwnsCourse,Bookmarked"
+        }
+        resp = self._get(endpoint, params).json()
+        print(resp)
+        for chapter in resp['Chapters']:
+            print(chapter['ID'], chapter_id)
+            if chapter['ID'] == chapter_id:
+                videos = []
+                for video in chapter['Videos']:
+                    videos.append(Video(
+                        video['ID'],
+                        video['Title'],
+                        None
+                    ))
+                return videos
+
+
 class Course:
     def __init__(self, title, course_id, thumb_url, description):
         self.title = title
@@ -104,3 +125,9 @@ class Chapter:
     def __init__(self, chapter_id, title):
         self.chapter_id = chapter_id
         self.title = title
+
+class Video:
+    def __init__(self, video_id, title, thumb_url):
+        self.video_id = video_id
+        self.title = title
+        self.thumb_url = thumb_url
