@@ -47,7 +47,19 @@ class LyndaApi:
         return user
 
     def login_normal(self, username, password):
-        pass
+        endpoint = '/session/login'
+        data = {
+            'type': 'Password',
+            'password.pass': password,
+            'password.user': username
+        }
+        resp = self._post(endpoint, data).json()
+        print("loginresp", resp)
+        if 'Status' in resp and resp['Status'] == 'ok':
+            self.logged_in = True
+            return True
+        else:
+            return False
 
     def course_search(self, query):
         params = {
@@ -135,6 +147,9 @@ class LyndaApi:
             if stream['StreamType'] == 1 and stream['IsMultiBitrate'] is True:
                 return stream['URL']
         raise ValueError('Could not get a stream URL from response')
+
+    def get_cookies(self):
+        return self._s.cookies
 
     def _make_hash(self, url):
         return hashlib.md5(self.HASH_KEY + url + str(int(time.time()))).hexdigest()

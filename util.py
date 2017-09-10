@@ -1,7 +1,3 @@
-"""
-@author: David Moodie
-"""
-
 # Note that these functions are taken from the xbmc / Kodi 'common' library and
 # are included here to avoid import issues
 
@@ -42,9 +38,9 @@ def load_data(addon, filename):
     print(profile_path)
     if not os.path.isfile(load_path):
         print('%s does not exist' % load_path)
-        return False
+        return None
     try:
         data = pickle.load(open(load_path))
+        return data
     except:
-        return False
-    return data
+        return None

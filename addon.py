@@ -8,6 +8,7 @@ from urllib import urlencode
 
 import requests
 
+import util
 from resources.lib.lynda_api import LyndaApi
 
 addon = xbmcaddon.Addon()
@@ -22,8 +23,7 @@ __version__ = addon.getAddonInfo("version")
 
 
 class LyndaAddon:
-    def __init__(self):
-        self.api = LyndaApi()
+    COOKIE_FILE_NAME = 'lynda_cookies'
 
     def show_listing(self, listing):
         """Show a listing on the screen."""
@@ -35,30 +35,43 @@ class LyndaAddon:
         """Create the list of root options in the Kodi interface."""
 
         listing = []
+
+        # Add search courses list item
         list_item = xbmcgui.ListItem(label="Search Courses")
         url = '{0}?action=search&type={1}'.format(__url__, "course")
         is_folder = True
         listing.append((url, list_item, is_folder))
 
+        # Add browse course categories list item
         list_item = xbmcgui.ListItem(label="Browse Course Categories")
         url = '{0}?action=list_categories_letters'.format(__url__)
         is_folder = True
         listing.append((url, list_item, is_folder))
 
-        if not self.api.logged_in:
-            logged_in_text = "Not logged in"
-        else:
+        if self.api.logged_in:
+            # Add my courses list item
             list_item = xbmcgui.ListItem(label="My Courses")
             url = '{0}?action=list_my_courses'.format(__url__)
             is_folder = True
             listing.append((url, list_item, is_folder))
 
+        if self.api.logged_in:
             logged_in_text = "Logged in as " + self.api.user().name
+        else:
+            logged_in_text = "Not logged in"
 
+        # Add the logged in status list item
         list_item = xbmcgui.ListItem(label=logged_in_text)
         url = ''
         is_folder = False
         listing.append((url, list_item, is_folder))
+
+        if self.api.logged_in:
+            list_item = xbmcgui.ListItem(label="Refresh login credentials")
+            url = '{0}?action=refresh_login'.format(__url__)
+            is_folder = False
+            listing.append((url, list_item, is_folder))
+
         self.show_listing(listing)
 
     def list_courses(self, courses):
@@ -130,6 +143,26 @@ class LyndaAddon:
             courses = self.api.course_search(query)
             self.list_courses(courses)
 
+    def login(self, auth_type):
+        if auth_type == "Normal Lynda.com Account":
+            username = xbmcplugin.getSetting(__handle__, "username")
+            password = xbmcplugin.getSetting(__handle__, "password")
+
+            login_success = self.api.login_normal(username, password)
+
+            if not login_success:
+                xbmcgui.Dialog().ok(addonname, "Could not login.", "Please check your credentials are correct.")
+
+    def refresh_login(self):
+        """Deletes persisted cookies which forces a login attempt with current credentials"""
+
+        s = requests.Session()
+        empty_cookie_jar = s.cookies
+        if util.save_data(addon, self.COOKIE_FILE_NAME, empty_cookie_jar):
+            xbmcgui.Dialog().ok(addonname, "Cleared cookies. Please exit the addon and open it again.")
+        else:
+            xbmcgui.Dialog().ok(addonname, "Could not refresh lynda session cookies")
+
     def router(self, paramstring):
         """
         Router function that calls other functions depending on the provided
@@ -140,6 +173,10 @@ class LyndaAddon:
         params = dict(parse_qsl(paramstring[1:]))
 
         if params:
+            # Cookiejar should definitely exist by now. Even if empty
+            cookiejar = util.load_data(addon, self.COOKIE_FILE_NAME)
+            self.api = LyndaApi(cookiejar)
+
             if params['action'] == 'search':
                 self.search()
             elif params['action'] == 'list_course_chapters':
@@ -150,19 +187,24 @@ class LyndaAddon:
                 self.play_video(int(params['course_id']), int(params['video_id']))
             elif params['action'] == 'show_access_error':
                 self.show_access_error()
+            elif params['action'] == 'refresh_login':
+                self.refresh_login()
         else:
+            cookiejar = util.load_data(addon, self.COOKIE_FILE_NAME)
+            if cookiejar:
+                self.api = LyndaApi(cookiejar)
+            else:
+                self.api = LyndaApi()
+
             auth_type = xbmcplugin.getSetting(__handle__, "auth_type")
 
             # Try to log the user in if necessary
             if not self.api.logged_in and auth_type != 'None':
-                if auth_type == "Normal Lynda.com Account":
-                    username = xbmcplugin.getSetting(__handle__, "username")
-                    password = xbmcplugin.getSetting(__handle__, "password")
+                self.login(auth_type)
 
-                    login_success = self.api.login_normal(username, password)
-
-                    if not login_success:
-                        xbmcgui.Dialog().ok(addonname, "Could not login.", "Please check your credentials are correct.")
+            # Save cookie jar to disk so other screens in addon can resume session
+            if not util.save_data(addon, self.COOKIE_FILE_NAME, self.api.get_cookies()):
+                xbmcgui.Dialog().ok(addonname, "Could not save lynda session cookies")
 
             self.list_root_options()
 
