@@ -136,6 +136,12 @@ class LyndaApi:
                 return stream['URL']
         raise ValueError('Could not get a stream URL from response')
 
+    def log_video(self, video_id):
+        endpoint = '/log/video/{0}'.format(video_id)
+        resp = self._get(endpoint).json()
+        if resp['Status'] == 'Error':
+            raise ValueError('Failed to log video play event')
+
     def get_cookies(self):
         return self._s.cookies
 
@@ -151,12 +157,14 @@ class LyndaApi:
             "User-Agent": self.USER_AGENT
         }
 
-    def _get(self, endpoint, params, new_headers=[]):
+    def _get(self, endpoint, params=None, new_headers=[]):
         url = self.API_HOST + endpoint
-        urlencoded_params = urllib.urlencode(params)
-        url_with_params = url + "?" + urlencoded_params
-
-        headers = self._headers(url_with_params)
+        if params:
+            urlencoded_params = urllib.urlencode(params)
+            url_with_params = url + "?" + urlencoded_params
+            headers = self._headers(url_with_params)
+        else:
+            headers = self._headers(url)
         # Override/add headers
         for h in new_headers:
             headers[h] = new_headers[h]

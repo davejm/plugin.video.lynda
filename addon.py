@@ -127,10 +127,6 @@ class LyndaAddon:
         """Play a video by the provided (lynda.com) video ID."""
 
         path = self.api.video_url(course_id, video_id)
-
-        # if path == "":
-        #     xbmcgui.Dialog().ok(addonname, "Could not find a video source. Unexpected JSON structure.", "You may need to be logged in to view this.")
-        # else:
         play_item = xbmcgui.ListItem(path=path)
         # Play the video
         xbmcplugin.setResolvedUrl(__handle__, True, listitem=play_item)
@@ -185,6 +181,9 @@ class LyndaAddon:
             elif params['action'] == 'list_chapter_videos':
                 self.list_chapter_videos(int(params['course_id']), int(params['chapter_id']))
             elif params['action'] == 'play':
+                # Log the video as being played if user is logged in
+                if self.api.logged_in:
+                    self.api.log_video(int(params['video_id']))
                 self.play_video(int(params['course_id']), int(params['video_id']))
             elif params['action'] == 'show_access_error':
                 self.show_access_error()
