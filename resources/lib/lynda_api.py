@@ -34,7 +34,6 @@ class LyndaApi:
             "filter.includes": "ID,Flags,RoleFlag,Products,FirstName,LastName"
         }
         resp = self._get('/user', params).json()
-        print("theuser", resp)
         if 'Status' in resp and resp['Status'] == 'error':
             return None
 
@@ -54,7 +53,6 @@ class LyndaApi:
             'password.user': username
         }
         resp = self._post(endpoint, data).json()
-        print("loginresp", resp)
         if 'Status' in resp and resp['Status'] == 'ok':
             self.logged_in = True
             return True
@@ -71,22 +69,15 @@ class LyndaApi:
             "q": query
         }
         resp = self._get('/search', params).json()
-        courses = []
-        c = 0
-        for course in resp['Courses']:
-            # Only get the first few course images as requests are slow
-            if c < 5:
-                thumb_url = self.course_thumb(course['ID'])
-            else:
-                thumb_url = None
-            courses.append(Course(
-                course['Title'],
-                course['ID'],
-                thumb_url,
-                course['Description']
-            ))
-            c += 1
-        return courses
+        return self._parse_courses_response(resp['Courses'])
+
+    def user_courses(self):
+        endpoint = '/user/history'
+        params = {
+            "filter.includes": "ID,Title,DateReleasedUtc,PlaylistIds,CourseTimes,DurationInSeconds,AccessDateUtc,Authors,LastVideoViewedId,Flags,Description"
+        }
+        resp = self._get(endpoint, params).json()
+        return self._parse_courses_response(resp)
 
     def course_thumb(self, course_id):
         width = 480
@@ -120,9 +111,7 @@ class LyndaApi:
             "filter.includes": "ID,Title,Description,DurationInSeconds,CourseTimes,Flags,DateOriginallyReleasedUtc,DateReleasedUtc,DateUpdatedUtc,URLs,LastVideoViewedId,Chapters.ID,Chapters.Title,Chapters.Videos.HasAccess,Chapters.Videos.ID,Chapters.Videos.DurationInSeconds,Chapters.Videos.CourseID,Chapters.Videos.Title,Chapters.Videos.FileName,Chapters.Videos.Watched,Authors.ID,Authors.Fullname,Authors.Bio,Authors.Thumbnails,Tags.ID,Tags.Type,Tags.Name,SuggestedCourses,PlaylistIds,OwnsCourse,Bookmarked"
         }
         resp = self._get(endpoint, params).json()
-        # print(resp)
         for chapter in resp['Chapters']:
-            print(chapter['ID'], chapter_id)
             if chapter['ID'] == chapter_id:
                 videos = []
                 for video in chapter['Videos']:
@@ -141,7 +130,6 @@ class LyndaApi:
             "filter.excludes": "Stream,Formats"
         }
         resp = self._get(endpoint, params).json()
-        # print(video_id, resp.text)
         streams = resp['PrioritizedStreams']['0']
         for stream in streams:
             if stream['StreamType'] == 1 and stream['IsMultiBitrate'] is True:
@@ -206,6 +194,25 @@ class LyndaApi:
     #     resp = self._post(endpoint, data, new_headers)
     #     print(resp.text)
     #     return resp
+
+    def _parse_courses_response(self, courses_response):
+        """Parses a list of dicts (originally json) into DTO objects"""
+        courses = []
+        c = 0
+        for course in courses_response:
+            # Only get the first few course images as requests are slow
+            if c < 5:
+                thumb_url = self.course_thumb(course['ID'])
+            else:
+                thumb_url = None
+            courses.append(Course(
+                course['Title'],
+                course['ID'],
+                thumb_url,
+                course['Description']
+            ))
+            c += 1
+        return courses
 
 
 class Course:

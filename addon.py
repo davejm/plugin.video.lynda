@@ -43,10 +43,10 @@ class LyndaAddon:
         listing.append((url, list_item, is_folder))
 
         # Add browse course categories list item
-        list_item = xbmcgui.ListItem(label="Browse Course Categories")
-        url = '{0}?action=list_categories_letters'.format(__url__)
-        is_folder = True
-        listing.append((url, list_item, is_folder))
+        # list_item = xbmcgui.ListItem(label="Browse Course Categories")
+        # url = '{0}?action=list_categories_letters'.format(__url__)
+        # is_folder = True
+        # listing.append((url, list_item, is_folder))
 
         if self.api.logged_in:
             # Add my courses list item
@@ -143,6 +143,10 @@ class LyndaAddon:
             courses = self.api.course_search(query)
             self.list_courses(courses)
 
+    def list_my_courses(self):
+        courses = self.api.user_courses()
+        self.list_courses(courses)
+
     def login(self, auth_type):
         if auth_type == "Normal Lynda.com Account":
             username = xbmcplugin.getSetting(__handle__, "username")
@@ -164,10 +168,7 @@ class LyndaAddon:
             xbmcgui.Dialog().ok(addonname, "Could not refresh lynda session cookies")
 
     def router(self, paramstring):
-        """
-        Router function that calls other functions depending on the provided
-        paramstrings
-        """
+        """Router function that calls other functions depending on the provided paramstrings"""
 
         # Parse a URL-encoded paramstring to the dictionary of {<parameter>: <value>} elements
         params = dict(parse_qsl(paramstring[1:]))
@@ -187,6 +188,8 @@ class LyndaAddon:
                 self.play_video(int(params['course_id']), int(params['video_id']))
             elif params['action'] == 'show_access_error':
                 self.show_access_error()
+            elif params['action'] == 'list_my_courses':
+                self.list_my_courses()
             elif params['action'] == 'refresh_login':
                 self.refresh_login()
         else:
