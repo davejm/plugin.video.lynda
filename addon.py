@@ -20,6 +20,7 @@ __handle__ = int(sys.argv[1])
 
 __version__ = addon.getAddonInfo("version")
 
+
 class LyndaAddon:
     def __init__(self):
         self.api = LyndaApi()
@@ -29,7 +30,6 @@ class LyndaAddon:
 
         xbmcplugin.addDirectoryItems(__handle__, listing, len(listing))
         xbmcplugin.endOfDirectory(__handle__)
-
 
     def list_root_options(self, name):
         """Create the list of root options in the Kodi interface."""
@@ -61,7 +61,6 @@ class LyndaAddon:
         listing.append((url, list_item, is_folder))
         self.show_listing(listing)
 
-
     def list_courses(self, courses):
         """Show a list of courses given a list of course objects."""
 
@@ -74,7 +73,6 @@ class LyndaAddon:
             listing.append((url, list_item, is_folder))
 
         self.show_listing(listing)
-
 
     def list_course_chapters(self, course_id):
         """Show the list of course chapters in the Kodi interface."""
@@ -90,7 +88,6 @@ class LyndaAddon:
 
         self.show_listing(listing)
 
-
     def list_chapter_videos(self, course_id, chapter_id):
         """Show a list of playable videos within a chapter in the Kodi interface."""
 
@@ -100,12 +97,23 @@ class LyndaAddon:
         for video in videos:
             list_item = xbmcgui.ListItem(label=video.title)
             list_item.setProperty('IsPlayable', 'true')
-            url = '{0}?action=play&video_id={1}'.format(__url__, video.video_id)
+            url = '{0}?action=play&course_id={1}&video_id={2}'.format(__url__, course_id, video.video_id)
             is_folder = False
             listing.append((url, list_item, is_folder))
 
         self.show_listing(listing)
 
+    def play_video(self, course_id, video_id):
+        """Play a video by the provided (lynda.com) video ID."""
+
+        path = self.api.video_url(course_id, video_id)
+
+        # if path == "":
+        #     xbmcgui.Dialog().ok(addonname, "Could not find a video source. Unexpected JSON structure.", "You may need to be logged in to view this.")
+        # else:
+        play_item = xbmcgui.ListItem(path=path)
+        # Play the video
+        xbmcplugin.setResolvedUrl(__handle__, True, listitem=play_item)
 
     def search(self):
         keyboard = xbmc.Keyboard("", "Search", False)
@@ -114,7 +122,6 @@ class LyndaAddon:
             query = keyboard.getText()
             courses = self.api.course_search(query)
             self.list_courses(courses)
-
 
     def router(self, paramstring):
         """
@@ -133,6 +140,8 @@ class LyndaAddon:
                 self.list_course_chapters(int(params['course_id']))
             elif params['action'] == 'list_chapter_videos':
                 self.list_chapter_videos(int(params['course_id']), int(params['chapter_id']))
+            elif params['action'] == 'play':
+                self.play_video(int(params['course_id']), int(params['video_id']))
         else:
             name = None
             self.list_root_options(name)

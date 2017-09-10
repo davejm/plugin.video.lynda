@@ -4,6 +4,7 @@ import hashlib
 import urllib
 import math
 
+
 class LyndaApi:
     API_HOST = "https://api-1.lynda.com"
     APP_KEY = "DC325E0DF73140E48DE3C0406B911B04"
@@ -77,7 +78,6 @@ class LyndaApi:
         resp = self._get(endpoint, params)
         return resp.url
 
-
     def course_chapters(self, course_id):
         endpoint = '/course/{0}'.format(course_id)
         params = {
@@ -92,7 +92,6 @@ class LyndaApi:
             ))
         return chapters
 
-
     # TODO: Consolidate with course_chapters call (cache initial response?)
     def chapter_videos(self, course_id, chapter_id):
         endpoint = '/course/{0}'.format(course_id)
@@ -100,7 +99,7 @@ class LyndaApi:
             "filter.includes": "ID,Title,Description,DurationInSeconds,CourseTimes,Flags,DateOriginallyReleasedUtc,DateReleasedUtc,DateUpdatedUtc,URLs,LastVideoViewedId,Chapters.ID,Chapters.Title,Chapters.Videos.HasAccess,Chapters.Videos.ID,Chapters.Videos.DurationInSeconds,Chapters.Videos.CourseID,Chapters.Videos.Title,Chapters.Videos.FileName,Chapters.Videos.Watched,Authors.ID,Authors.Fullname,Authors.Bio,Authors.Thumbnails,Tags.ID,Tags.Type,Tags.Name,SuggestedCourses,PlaylistIds,OwnsCourse,Bookmarked"
         }
         resp = self._get(endpoint, params).json()
-        print(resp)
+        # print(resp)
         for chapter in resp['Chapters']:
             print(chapter['ID'], chapter_id)
             if chapter['ID'] == chapter_id:
@@ -113,6 +112,20 @@ class LyndaApi:
                     ))
                 return videos
 
+    def video_url(self, course_id, video_id):
+        endpoint = '/course/{0}/{1}'.format(course_id, video_id)
+        params = {
+            "streamType": 1,
+            "filter.excludes": "Stream,Formats"
+        }
+        resp = self._get(endpoint, params).json()
+        # print(video_id, resp.text)
+        streams = resp['PrioritizedStreams']['0']
+        for stream in streams:
+            if stream['StreamType'] == 1 and stream['IsMultiBitrate'] is True:
+                return stream['URL']
+        raise ValueError('Could not get a stream URL from response')
+
 
 class Course:
     def __init__(self, title, course_id, thumb_url, description):
@@ -121,10 +134,12 @@ class Course:
         self.thumb_url = thumb_url
         self.description = description
 
+
 class Chapter:
     def __init__(self, chapter_id, title):
         self.chapter_id = chapter_id
         self.title = title
+
 
 class Video:
     def __init__(self, video_id, title, thumb_url):
