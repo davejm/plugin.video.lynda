@@ -11,32 +11,42 @@ class LyndaApi:
     USER_AGENT = "Dalvik/2.1.0 (Linux; U; Android 6.0; Android SDK built for x86 Build/MASTER)"
     HASH_KEY = "DC325E0DF73140E48DE3C0406B911B04F0CFC5A8D3BB4F82878947BD6D0BC3A1"
 
-    def _make_hash(self, url):
-        return hashlib.md5(self.HASH_KEY + url + str(int(time.time()))).hexdigest()
+    def __init__(self, cookiejar=None):
+        # Initialise the session
+        self._s = requests.Session()
+        self._user_cached = None
+        self.logged_in = False
 
-    def _headers(self, url):
-        return {
-            "appkey": self.APP_KEY,
-            "timestamp": str(int(time.time())),
-            "hash": self._make_hash(url),
-            "Accept-Language": "en",
-            "User-Agent": self.USER_AGENT
+        if cookiejar:
+            self._s.cookies = cookiejar
+
+            # Check if the given cookies log the user in
+            user = self.user()
+            if user:
+                self.logged_in = True
+
+    def user(self):
+        # If we have a user object saved from previous query, return that straight away
+        if self._user_cached:
+            return self._user_cached
+
+        params = {
+            "filter.includes": "ID,Flags,RoleFlag,Products,FirstName,LastName"
         }
+        resp = self._get('/user', params).json()
+        print("theuser", resp)
+        if 'Status' in resp and resp['Status'] == 'error':
+            return None
 
-    def _get(self, endpoint, params, new_headers=[]):
-        url = self.API_HOST + endpoint
-        urlencoded_params = urllib.urlencode(params)
-        url_with_params = url + "?" + urlencoded_params
+        user = User(
+            resp['ID'],
+            resp['FirstName'],
+            resp['LastName']
+        )
+        self._user_cached = user
+        return user
 
-        headers = self._headers(url_with_params)
-        # Override/add headers
-        for h in new_headers:
-            headers[h] = new_headers[h]
-
-        resp = requests.get(url, params=params, headers=headers)
-        return resp
-
-    def _post(self, endpoint, data):
+    def login_normal(self, username, password):
         pass
 
     def course_search(self, query):
@@ -48,7 +58,6 @@ class LyndaApi:
             "limit": 20,
             "q": query
         }
-        print("thequery")
         resp = self._get('/search', params).json()
         courses = []
         c = 0
@@ -108,7 +117,8 @@ class LyndaApi:
                     videos.append(Video(
                         video['ID'],
                         video['Title'],
-                        None
+                        None,
+                        video['HasAccess']
                     ))
                 return videos
 
@@ -126,6 +136,62 @@ class LyndaApi:
                 return stream['URL']
         raise ValueError('Could not get a stream URL from response')
 
+    def _make_hash(self, url):
+        return hashlib.md5(self.HASH_KEY + url + str(int(time.time()))).hexdigest()
+
+    def _headers(self, url):
+        return {
+            "appkey": self.APP_KEY,
+            "timestamp": str(int(time.time())),
+            "hash": self._make_hash(url),
+            "Accept-Language": "en",
+            "User-Agent": self.USER_AGENT
+        }
+
+    def _get(self, endpoint, params, new_headers=[]):
+        url = self.API_HOST + endpoint
+        urlencoded_params = urllib.urlencode(params)
+        url_with_params = url + "?" + urlencoded_params
+
+        headers = self._headers(url_with_params)
+        # Override/add headers
+        for h in new_headers:
+            headers[h] = new_headers[h]
+
+        resp = self._s.get(url, params=params, headers=headers)
+        return resp
+
+    def _post(self, endpoint, data, new_headers=[]):
+        url = self.API_HOST + endpoint
+
+        headers = self._headers(url)
+        # Override/add headers
+        for h in new_headers:
+            headers[h] = new_headers[h]
+
+        resp = self._s.post(url, data=data, headers=headers)
+        return resp
+
+    # def _batch(self, batches, new_headers=[]):
+    #     """Performs a batch request. 'batches' param is a list of tuples like
+    #     (endpoint, params) where params is a params dict"""
+    #
+    #     batch_objects = []
+    #     for endpoint, params in batches:
+    #         url = endpoint
+    #         urlencoded_params = urllib.urlencode(params)
+    #         url_with_params = url + "?" + urlencoded_params
+    #         batch_objects.append({'url': url_with_params})
+    #
+    #     endpoint = '/batch2'
+    #     data = {
+    #         'data': json.dumps({'batch': batch_objects})
+    #     }
+    #
+    #     resp = self._post(endpoint, data, new_headers)
+    #     print(resp.text)
+    #     return resp
+
 
 class Course:
     def __init__(self, title, course_id, thumb_url, description):
@@ -142,7 +208,16 @@ class Chapter:
 
 
 class Video:
-    def __init__(self, video_id, title, thumb_url):
+    def __init__(self, video_id, title, thumb_url, has_access):
         self.video_id = video_id
         self.title = title
         self.thumb_url = thumb_url
+        self.has_access = has_access
+
+
+class User:
+    def __init__(self, user_id, first_name, last_name):
+        self.user_id = user_id
+        self.first_name = first_name
+        self.last_name = last_name
+        self.name = self.first_name + ' ' + self.last_name

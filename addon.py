@@ -31,7 +31,7 @@ class LyndaAddon:
         xbmcplugin.addDirectoryItems(__handle__, listing, len(listing))
         xbmcplugin.endOfDirectory(__handle__)
 
-    def list_root_options(self, name):
+    def list_root_options(self):
         """Create the list of root options in the Kodi interface."""
 
         listing = []
@@ -45,17 +45,17 @@ class LyndaAddon:
         is_folder = True
         listing.append((url, list_item, is_folder))
 
-        if name is None:
-            logged_in = "Not logged in"
+        if not self.api.logged_in:
+            logged_in_text = "Not logged in"
         else:
             list_item = xbmcgui.ListItem(label="My Courses")
             url = '{0}?action=list_my_courses'.format(__url__)
             is_folder = True
             listing.append((url, list_item, is_folder))
 
-            logged_in = "Logged in as " + name
+            logged_in_text = "Logged in as " + self.api.user().name
 
-        list_item = xbmcgui.ListItem(label=logged_in)
+        list_item = xbmcgui.ListItem(label=logged_in_text)
         url = ''
         is_folder = False
         listing.append((url, list_item, is_folder))
@@ -96,12 +96,19 @@ class LyndaAddon:
         listing = []
         for video in videos:
             list_item = xbmcgui.ListItem(label=video.title)
-            list_item.setProperty('IsPlayable', 'true')
-            url = '{0}?action=play&course_id={1}&video_id={2}'.format(__url__, course_id, video.video_id)
             is_folder = False
+            if video.has_access:
+                list_item.setProperty('IsPlayable', 'true')
+                url = '{0}?action=play&course_id={1}&video_id={2}'.format(__url__, course_id, video.video_id)
+            else:
+                url = '{0}?action=show_access_error'.format(__url__)
+
             listing.append((url, list_item, is_folder))
 
         self.show_listing(listing)
+
+    def show_access_error(self):
+        xbmcgui.Dialog().ok(addonname, "Access error.", "You do not have access to this video. Please login to view this video.")
 
     def play_video(self, course_id, video_id):
         """Play a video by the provided (lynda.com) video ID."""
@@ -129,8 +136,7 @@ class LyndaAddon:
         paramstrings
         """
 
-        # Parse a URL-encoded paramstring to the dictionary of
-        # {<parameter>: <value>} elements
+        # Parse a URL-encoded paramstring to the dictionary of {<parameter>: <value>} elements
         params = dict(parse_qsl(paramstring[1:]))
 
         if params:
@@ -142,9 +148,23 @@ class LyndaAddon:
                 self.list_chapter_videos(int(params['course_id']), int(params['chapter_id']))
             elif params['action'] == 'play':
                 self.play_video(int(params['course_id']), int(params['video_id']))
+            elif params['action'] == 'show_access_error':
+                self.show_access_error()
         else:
-            name = None
-            self.list_root_options(name)
+            auth_type = xbmcplugin.getSetting(__handle__, "auth_type")
+
+            # Try to log the user in if necessary
+            if not self.api.logged_in and auth_type != 'None':
+                if auth_type == "Normal Lynda.com Account":
+                    username = xbmcplugin.getSetting(__handle__, "username")
+                    password = xbmcplugin.getSetting(__handle__, "password")
+
+                    login_success = self.api.login_normal(username, password)
+
+                    if not login_success:
+                        xbmcgui.Dialog().ok(addonname, "Could not login.", "Please check your credentials are correct.")
+
+            self.list_root_options()
 
 
 if __name__ == '__main__':
