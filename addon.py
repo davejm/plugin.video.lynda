@@ -24,6 +24,7 @@ __version__ = addon.getAddonInfo("version")
 
 class LyndaAddon:
     COOKIE_FILE_NAME = 'lynda_cookies'
+    TOKEN_USER_INPUT = 'user_login_token'
 
     def show_listing(self, listing):
         """Show a listing on the screen."""
@@ -152,6 +153,23 @@ class LyndaAddon:
 
             if not login_success:
                 xbmcgui.Dialog().ok(addonname, "Could not login.", "Please check your credentials are correct.")
+        elif auth_type == 'Organisation':
+            login_token = util.load_text(addon, self.TOKEN_USER_INPUT)  # Can be None if file doesn't exist
+            if login_token:
+                login_token = login_token.strip()
+                print("got login token", login_token)
+
+                self.api.set_token(login_token)
+                user = self.api.user()
+                if not user:
+                    xbmcgui.Dialog().ok(addonname, "Could not login.", "Please make sure you have a valid login token in the user_login_token file in the addon data directory")
+            else:
+                xbmcgui.Dialog().ok(addonname, "Could not login.", "Please make sure you have the user_login_token file with your login token in the addon data directory")
+        elif auth_type == 'IP Site License':
+            login_success = self.api.login_ip()
+
+            if not login_success:
+                xbmcgui.Dialog().ok(addonname, "Could not login.", "Your IP may not have a site license.")
 
     def refresh_login(self):
         """Deletes persisted cookies which forces a login attempt with current credentials"""

@@ -6,6 +6,15 @@ import math
 
 
 class LyndaApi:
+    """
+    Unofficial client for the API used by Lynda.com's Android app.
+    This is used as a replacement to scraping the website which regularly changes.
+    This should be much more stable and quicker.
+    Reverse engineered using mitmproxy and decompiling the Android app.
+
+    Author: David Moodie
+    """
+
     API_HOST = "https://api-1.lynda.com"
     APP_KEY = "DC325E0DF73140E48DE3C0406B911B04"
     USER_AGENT = "Dalvik/2.1.0 (Linux; U; Android 6.0; Android SDK built for x86 Build/MASTER)"
@@ -27,8 +36,8 @@ class LyndaApi:
 
     def user(self):
         # If we have a user object saved from previous query, return that straight away
-        if self._user_cached:
-            return self._user_cached
+        # if self._user_cached:
+        #     return self._user_cached
 
         params = {
             "filter.includes": "ID,Flags,RoleFlag,Products,FirstName,LastName"
@@ -58,6 +67,24 @@ class LyndaApi:
             return True
         else:
             return False
+
+    def login_ip(self):
+        """Logs a user based on their IP. Used for IP-based site licenses.
+        TODO: TEST!"""
+        endpoint = '/session/login'
+        data = {
+            'type': 'IP'
+        }
+        resp = self._post(endpoint, data).json()
+        if 'Status' in resp and resp['Status'] == 'ok':
+            self.logged_in = True
+            return True
+        else:
+            return False
+
+    def set_token(self, token):
+        """Sets the cookie session token directly instead of using a proper login method."""
+        self._s.cookies['token'] = token
 
     def course_search(self, query):
         params = {
