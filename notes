@@ -1,0 +1,23 @@
+Main screen:
+
+- Search courses (brings up dialog) -> course listings
+- Browse course categories -> Categories
+- My courses
+- Logged in as <name> / Not logged in  (no link)
+
+Course listings
+  - Course item list
+    - Thumb
+    - Title
+
+Categories listing -> Category refinement (topics/software selection)
+
+Category refinement
+  - Show Topics -> Category - browse by topics
+  - Show Software -> Category - browse by software
+
+Category - Browse by topics
+  - List of topics to do with category -> Course listings
+
+Category - Browse by software
+  - List of software to do with car -> Course listings

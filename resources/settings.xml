@@ -1,16 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
     <category label="General">
-        <setting id="auth_type" type="select" label="Account Login Type" values="None|Organisation|Library|Normal Lynda.com Account" default="None" />
+        <setting id="auth_type" type="select" label="Account Login Type" values="None|Normal Lynda.com Account|Organisation|IP Site License" default="None" />
         <setting type="sep"/>
 
-        <setting label="Username" type="text" enable="eq(-2,Organisation)|eq(-2,Normal Lynda.com Account)"  id="username" default=""/>
-        <setting label="Password" type="text"   id="password" option="hidden"  enable="eq(-3,Organisation)|eq(-3,Normal Lynda.com Account)" default=""/>
+        <setting label="Username (may be email address)" type="text" enable="eq(-2,Normal Lynda.com Account)"  id="username" default=""/>
+        <setting label="Password" type="text" id="password" option="hidden"  enable="eq(-3,Normal Lynda.com Account)" default=""/>
 
-        <setting label="Library Card Number" type="text" enable="eq(-4,Library)" id="libraryCardNum" default="" />
-        <setting label="Library Card Pin" type="text" id="libraryCardPin" option="hidden"  enable="eq(-5,Library)+!eq(-1,)" default=""/>
-
-        <setting label="Organisation website/domain" type="text"   id="org_url" enable="eq(-6,Organisation)|eq(-6,Library)" default="sheffield.ac.uk"/>
-        <setting id="debug" type="bool" label="Debug" default="false"/>
+        <!-- <setting id="debug" type="bool" label="Debug" default="false"/> -->
     </category>
 </settings>

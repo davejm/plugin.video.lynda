@@ -1,7 +1,3 @@
-"""
-@author: David Moodie
-"""
-
 # Note that these functions are taken from the xbmc / Kodi 'common' library and
 # are included here to avoid import issues
 
@@ -42,9 +38,36 @@ def load_data(addon, filename):
     print(profile_path)
     if not os.path.isfile(load_path):
         print('%s does not exist' % load_path)
-        return False
+        return None
     try:
         data = pickle.load(open(load_path))
+        return data
     except:
-        return False
-    return data
+        return None
+
+
+def save_text(addon, filename, text):
+    profile_path = get_profile(addon)
+    try:
+        os.makedirs(profile_path)
+    except:
+        pass
+    save_path = os.path.join(profile_path, filename)
+    with open(save_path, 'wb') as f:
+        f.write(text)
+    return True
+
+
+def load_text(addon, filename):
+    profile_path = get_profile(addon)
+    load_path = os.path.join(profile_path, filename)
+    print(profile_path)
+    if not os.path.isfile(load_path):
+        print('%s does not exist' % load_path)
+        return None
+    try:
+        with open(load_path) as f:
+            text = f.read()
+        return text
+    except:
+        return None

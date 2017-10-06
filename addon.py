@@ -1,7 +1,3 @@
-﻿"""
-@author: David Moodie
-"""
-
 import xbmcaddon
 import xbmcgui
 import xbmcplugin
@@ -12,9 +8,9 @@ from urllib import urlencode
 
 import requests
 
-import scrape
-import auth
 import util
+from resources.lib.lynda_api import LyndaApi
+from google_analytics import GoogleAnalytics
 
 addon = xbmcaddon.Addon()
 addonname = addon.getAddonInfo('name')
@@ -24,348 +20,226 @@ __url__ = sys.argv[0]
 # Get the plugin handle as an integer number.
 __handle__ = int(sys.argv[1])
 
-VISITOR_FILE = 'visitor.txt'
-
 __version__ = addon.getAddonInfo("version")
 
 
-def list_root_options(name):
-    """
-    Create the list of root options in the Kodi interface.
-    """
+class LyndaAddon:
+    COOKIE_FILE_NAME = 'lynda_cookies'
+    TOKEN_USER_INPUT = 'user_login_token'
 
-    # Create a list for our items.
-    listing = []
+    def __init__(self):
+        self.ga = GoogleAnalytics(addon, __version__)
 
-    # Create a list item with a text label and a thumbnail image.
-    list_item = xbmcgui.ListItem(label="Search Courses")
+    def show_listing(self, listing):
+        """Show a listing on the screen."""
 
-    # Create a URL for the plugin recursive callback.
-    # Example: plugin://plugin.video.example/?action=listing&category=Animals
-    url = '{0}?action=search&type={1}'.format(__url__, "course")
+        xbmcplugin.addDirectoryItems(__handle__, listing, len(listing))
+        xbmcplugin.endOfDirectory(__handle__)
 
-    # is_folder = True means that this item opens a sub-list of lower level items.
-    is_folder = True
+    def list_root_options(self):
+        """Create the list of root options in the Kodi interface."""
 
-    # Add our item to the listing as a 3-element tuple.
-    listing.append((url, list_item, is_folder))
+        listing = []
 
-    # Create a list item with a text label and a thumbnail image.
-    list_item = xbmcgui.ListItem(label="Browse Course Categories")
-    url = '{0}?action=list_categories_letters'.format(__url__)
-    is_folder = True
-    listing.append((url, list_item, is_folder))
-
-    if name is None:
-        logged_in = "Not logged in"
-    else:
-        list_item = xbmcgui.ListItem(label="My Courses")
-        url = '{0}?action=list_my_courses'.format(__url__)
+        # Add search courses list item
+        list_item = xbmcgui.ListItem(label="Search Courses")
+        url = '{0}?action=search&type={1}'.format(__url__, "course")
         is_folder = True
         listing.append((url, list_item, is_folder))
 
-        logged_in = "Logged in as " + name
+        # Add browse course categories list item
+        # list_item = xbmcgui.ListItem(label="Browse Course Categories")
+        # url = '{0}?action=list_categories_letters'.format(__url__)
+        # is_folder = True
+        # listing.append((url, list_item, is_folder))
 
-    list_item = xbmcgui.ListItem(label=logged_in)
-    url = ''
-    is_folder = False
-    listing.append((url, list_item, is_folder))
+        if self.api.logged_in:
+            # Add my courses list item
+            list_item = xbmcgui.ListItem(label="My Courses")
+            url = '{0}?action=list_my_courses'.format(__url__)
+            is_folder = True
+            listing.append((url, list_item, is_folder))
 
-    # Add our listing to Kodi.
-    # Large lists and/or slower systems benefit from adding all items at once
-    # via addDirectoryItems instead of adding one by ove via addDirectoryItem.
-    xbmcplugin.addDirectoryItems(__handle__, listing, len(listing))
-    # Add a sort method for the virtual folder items (alphabetically,
-    # ignore articles)
-    # xbmcplugin.addSortMethod(__handle__, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
-    # Finish creating a virtual folder.
-    xbmcplugin.endOfDirectory(__handle__)
+        if self.api.logged_in:
+            logged_in_text = "Logged in as " + self.api.user().name
+        else:
+            logged_in_text = "Not logged in"
 
-
-def list_course_chapters(s, courseId):
-    """
-    Create the list of playable course chapters in the Kodi interface.
-    """
-
-    course = scrape.get_course(s, courseId)
-    chapters = course['Chapters']
-
-    listing = []
-    for i, chapter in enumerate(chapters):
-        list_item = xbmcgui.ListItem(label=chapter['Title'])
-        url = '{0}?action=list_course_chapter_videos&courseId={1}&chapterIndex={2}'.format(__url__, courseId, i)
-        is_folder = True
-        listing.append((url, list_item, is_folder))
-
-    xbmcplugin.addDirectoryItems(__handle__, listing, len(listing))
-    xbmcplugin.endOfDirectory(__handle__)
-
-
-def list_course_chapter_videos(s, courseId, chapterIndex):
-    """
-    Create the list of playable videos within a chapter in the Kodi interface.
-    """
-
-    course = scrape.get_course(s, courseId)
-    chapters = course['Chapters']
-
-    videos = []
-    chapter = chapters[int(chapterIndex)]
-
-    for video in chapter['Videos']:
-        title = video['Title']
-        videoId = video['ID']
-        v = {"title": title, "videoId": videoId}
-        videos.append(v)
-
-    listing = []
-    for video in videos:
-        list_item = xbmcgui.ListItem(label=video['title'])
-        list_item.setProperty('IsPlayable', 'true')
-        url = '{0}?action=play&videoId={1}'.format(__url__, video['videoId'])
+        # Add the logged in status list item
+        list_item = xbmcgui.ListItem(label=logged_in_text)
+        url = ''
         is_folder = False
         listing.append((url, list_item, is_folder))
 
-    xbmcplugin.addDirectoryItems(__handle__, listing, len(listing))
-    xbmcplugin.endOfDirectory(__handle__)
+        if self.api.logged_in:
+            list_item = xbmcgui.ListItem(label="Refresh login credentials")
+            url = '{0}?action=refresh_login'.format(__url__)
+            is_folder = False
+            listing.append((url, list_item, is_folder))
 
+        self.show_listing(listing)
 
-def play_video(s, videoId):
-    """
-    Play a video by the provided (lynda.com) video ID.
-    """
+    def list_courses(self, courses):
+        """Show a list of courses given a list of course objects."""
 
-    path = scrape.get_video(s, videoId)
+        listing = []
+        for course in courses:
+            list_item = xbmcgui.ListItem(label=course.title, thumbnailImage=course.thumb_url)
+            url = '{0}?action=list_course_chapters&course_id={1}'.format(__url__, course.course_id)
+            is_folder = True
+            list_item.setInfo("video", {"plot": course.description})
+            listing.append((url, list_item, is_folder))
 
-    if path == "":
-        xbmcgui.Dialog().ok(addonname, "Could not find a video source. Unexpected JSON structure.", "You may need to be logged in to view this.")
-    else:
-        # Create a playable item with a path to play.
+        self.show_listing(listing)
+
+    def list_course_chapters(self, course_id):
+        """Show the list of course chapters in the Kodi interface."""
+
+        chapters = self.api.course_chapters(course_id)
+
+        listing = []
+        for chapter in chapters:
+            list_item = xbmcgui.ListItem(label=chapter.title)
+            url = '{0}?action=list_chapter_videos&course_id={1}&chapter_id={2}'.format(__url__, course_id, chapter.chapter_id)
+            is_folder = True
+            listing.append((url, list_item, is_folder))
+
+        self.show_listing(listing)
+
+    def list_chapter_videos(self, course_id, chapter_id):
+        """Show a list of playable videos within a chapter in the Kodi interface."""
+
+        videos = self.api.chapter_videos(course_id, chapter_id)
+
+        listing = []
+        for video in videos:
+            list_item = xbmcgui.ListItem(label=video.title)
+            is_folder = False
+            if video.has_access:
+                list_item.setProperty('IsPlayable', 'true')
+                url = '{0}?action=play&course_id={1}&video_id={2}'.format(__url__, course_id, video.video_id)
+            else:
+                url = '{0}?action=show_access_error'.format(__url__)
+
+            listing.append((url, list_item, is_folder))
+
+        self.show_listing(listing)
+
+    def show_access_error(self):
+        xbmcgui.Dialog().ok(addonname, "Access error.", "You do not have access to this video. Please login to view this video.")
+
+    def play_video(self, course_id, video_id):
+        """Play a video by the provided (lynda.com) video ID."""
+
+        path = self.api.video_url(course_id, video_id)
         play_item = xbmcgui.ListItem(path=path)
-        # Pass the item to the Kodi player.
+        # Play the video
         xbmcplugin.setResolvedUrl(__handle__, True, listitem=play_item)
 
+    def search(self):
+        keyboard = xbmc.Keyboard("", "Search", False)
+        keyboard.doModal()
+        if keyboard.isConfirmed() and keyboard.getText() != "":
+            query = keyboard.getText()
+            courses = self.api.course_search(query)
+            self.list_courses(courses)
 
-def list_courses(s, courses):
-    """
-    Create a list of courses given a list of course objects.
-    """
+    def list_my_courses(self):
+        courses = self.api.user_courses()
+        self.list_courses(courses)
 
-    listing = []
-    for course in courses:
-        title = course['title']
-        courseId = course['courseId']
-
-        thumbURL = course['thumbURL']
-
-        shortDesc = course['shortDesc']
-
-        list_item = xbmcgui.ListItem(label=title, label2="Test", thumbnailImage=thumbURL)
-        url = '{0}?action=list_course_chapters&courseId={1}'.format(__url__, courseId)
-        is_folder = True
-        list_item.setInfo("video", {"plot": shortDesc})
-
-        listing.append((url, list_item, is_folder))
-
-    #xbmcgui.Dialog().ok(addonname, thumbURL) # DEBGUG
-
-    xbmcplugin.addDirectoryItems(__handle__, listing, len(listing))
-    xbmcplugin.endOfDirectory(__handle__)
-
-
-def list_categories_letters(s):
-    """
-    Create the list of video categories' first letters in the Kodi interface.
-    """
-
-    categories_letters = scrape.get_categories_letters(s)
-    listing = []
-
-    for letter in categories_letters:
-        list_item = xbmcgui.ListItem(label=letter)
-        url = '{0}?action=list_category_letter_contents&letter={1}'.format(__url__, letter)
-        is_folder = True
-        listing.append((url, list_item, is_folder))
-
-    xbmcplugin.addDirectoryItems(__handle__, listing, len(listing))
-    xbmcplugin.endOfDirectory(__handle__)
-
-
-def list_category_letter_contents(s, letter):
-    """
-    Creates a list of the contents of a chosen letter in the Kodi interface.
-    """
-
-    softwares = scrape.get_category_letter_software(s, letter)
-    listing = []
-
-    for software in softwares:
-        list_item = xbmcgui.ListItem(label=software['name'])
-        url = '{0}?action=list_category_courses&{1}'.format(__url__, urlencode({"link": software['link']}))
-        is_folder = True
-        listing.append((url, list_item, is_folder))
-
-    xbmcplugin.addDirectoryItems(__handle__, listing, len(listing))
-    xbmcplugin.endOfDirectory(__handle__)
-
-
-def router(paramstring):
-    """
-    Router function that calls other functions depending on the provided
-    paramstrings
-    """
-
-    # Parse a URL-encoded paramstring to the dictionary of
-    # {<parameter>: <value>} elements
-    params = dict(parse_qsl(paramstring[1:]))
-
-    # Check the parameters passed to the plugin
-    if params:
-        s = util.load_data(addon, "lynda_session")
-        if s == False:
-            xbmcgui.Dialog().ok(addonname, "Could not load session data")
-            return
-
-        if params['action'] != 'play':
-            ga_track(params['action'])
-
-        if params['action'] == 'search':
-            keyboard = xbmc.Keyboard("", "Search", False)
-            keyboard.doModal()
-            if keyboard.isConfirmed() and keyboard.getText() != "":
-                query = keyboard.getText()
-                # xbmcgui.Dialog().ok(addonname, query)
-                courses = scrape.course_search(s, query)
-                list_courses(s, courses)
-
-        elif params['action'] == 'list_my_courses':
-            courses = scrape.get_my_courses(s)
-            list_courses(s, courses)
-
-        elif params['action'] == 'list_categories_letters':
-            list_categories_letters(s)
-
-        elif params['action'] == 'list_category_letter_contents':
-            list_category_letter_contents(s, params['letter'])
-
-        elif params['action'] == 'list_category_courses':
-            link = params['link']
-            courses = scrape.courses_for_category(s, link)
-            list_courses(s, courses)
-
-        elif params['action'] == 'list_course_chapters':
-            list_course_chapters(s, params['courseId'])
-
-        elif params['action'] == 'list_course_chapter_videos':
-            list_course_chapter_videos(s, params['courseId'], params['chapterIndex'])
-
-        elif params['action'] == 'play':
-            # Play a video from a provided URL.
-            play_video(s, params['videoId'])
-    else:
-        ga_track('list_root_options')
-        s = auth.initSession()
-        name = None
-
-        DEBUG = xbmcplugin.getSetting(__handle__, "debug")
-        DEBUG = DEBUG == 'true'
-        print("DEBUG VAR: ", DEBUG)
-
-        auth_type = xbmcplugin.getSetting(__handle__, "auth_type")
-        if auth_type == "Organisation":
-            username = xbmcplugin.getSetting(__handle__, "username")
-            password = xbmcplugin.getSetting(__handle__, "password")
-            org_url = xbmcplugin.getSetting(__handle__, "org_url")
-
-            ret = auth.org_login(s,
-                                 username=username,
-                                 password=password,
-                                 orgURL=org_url,
-                                 LDEBUG=DEBUG)
-
-            if ret != False:
-                name = ret
-            else:
-                xbmcgui.Dialog().ok(addonname,
-                                    "Could not login.",
-                                    "Please check your credentials are correct.")
-        elif auth_type == "Library":
-            libraryCardNum = xbmcplugin.getSetting(__handle__, "libraryCardNum")
-            libraryCardPin = xbmcplugin.getSetting(__handle__, "libraryCardPin")
-            org_url = xbmcplugin.getSetting(__handle__, "org_url")
-
-            ret = auth.library_login(s,
-                                     libCardNum=libraryCardNum,
-                                     libCardPin=libraryCardPin,
-                                     orgDomain=org_url,
-                                     LDEBUG=DEBUG)
-
-            if ret != False:
-                name = ret
-            else:
-                xbmcgui.Dialog().ok(addonname,
-                                    "Could not login.",
-                                    "Please check your credentials are correct.")
-
-        elif auth_type == "Normal Lynda.com Account":
+    def login(self, auth_type):
+        if auth_type == "Normal Lynda.com Account":
             username = xbmcplugin.getSetting(__handle__, "username")
             password = xbmcplugin.getSetting(__handle__, "password")
 
-            ret = auth.normal_login(s, username=username, password=password)
+            login_success = self.api.login_normal(username, password)
 
-            if ret != False:
-                name = ret
+            if not login_success:
+                xbmcgui.Dialog().ok(addonname, "Could not login.", "Please check your credentials are correct.")
+        elif auth_type == 'Organisation':
+            login_token = util.load_text(addon, self.TOKEN_USER_INPUT)  # Can be None if file doesn't exist
+            if login_token:
+                login_token = login_token.strip()
+                print("got login token", login_token)
+
+                self.api.set_token(login_token)
+                user = self.api.user()
+                if not user:
+                    xbmcgui.Dialog().ok(addonname, "Could not login.", "Please make sure you have a valid login token in the user_login_token file in the addon data directory")
             else:
-                xbmcgui.Dialog().ok(addonname,
-                                    "Could not login.",
-                                    "Please check your credentials are correct.")
+                xbmcgui.Dialog().ok(addonname, "Could not login.", "Please make sure you have the user_login_token file with your login token in the addon data directory")
+        elif auth_type == 'IP Site License':
+            login_success = self.api.login_ip()
 
-        if not util.save_data(addon, "lynda_session", s):
-            xbmcgui.Dialog().ok(addonname, "Could not save requests session")
+            if not login_success:
+                xbmcgui.Dialog().ok(addonname, "Could not login.", "Your IP may not have a site license.")
 
-        list_root_options(name)
+    def refresh_login(self):
+        """Deletes persisted cookies which forces a login attempt with current credentials"""
 
-
-def get_visitorid():
-    visitor_id = util.load_data(addon, VISITOR_FILE)
-    if visitor_id is False:
-        from random import randint
-        visitor_id = str(randint(0, 0x7fffffff))
-        util.save_data(addon, VISITOR_FILE, visitor_id)
-
-    return visitor_id
-
-
-def ga_track(page):
-    try:
-        url = 'https://ssl.google-analytics.com/collect'
-        payload = {
-            'v': 1,
-            'tid': 'UA-23742434-4',
-            'cid': __visitor__,
-            't': 'screenview',
-            'an': 'Lynda.com Kodi Addon',
-            'av': __version__,
-            'cd': page
-        }
-
-        """print("ga URL", url)
-        from pprint import pprint
-        pprint(payload)"""
-
-        headers = {'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:11.0) Gecko/20100101 Firefox/11.0'}
-        r = requests.post(url, data=payload, headers=headers)
-        print(r, r.status_code, r.text, r.headers)
-        if r.status_code == 200:
-            return True
+        s = requests.Session()
+        empty_cookie_jar = s.cookies
+        if util.save_data(addon, self.COOKIE_FILE_NAME, empty_cookie_jar):
+            xbmcgui.Dialog().ok(addonname, "Cleared cookies. Please exit the addon and open it again.")
         else:
-            return False
+            xbmcgui.Dialog().ok(addonname, "Could not refresh lynda session cookies")
 
-    except:
-        print("ga_link block hit except")
-        return False
+    def router(self, paramstring):
+        """Router function that calls other functions depending on the provided paramstrings"""
+
+        # Parse a URL-encoded paramstring to the dictionary of {<parameter>: <value>} elements
+        params = dict(parse_qsl(paramstring[1:]))
+
+        if params:
+            if params['action'] != 'play':
+                self.ga.track(params['action'])
+
+            # Cookiejar should definitely exist by now. Even if empty
+            cookiejar = util.load_data(addon, self.COOKIE_FILE_NAME)
+            self.api = LyndaApi(cookiejar)
+
+            if params['action'] == 'search':
+                self.search()
+            elif params['action'] == 'list_course_chapters':
+                self.list_course_chapters(int(params['course_id']))
+            elif params['action'] == 'list_chapter_videos':
+                self.list_chapter_videos(int(params['course_id']), int(params['chapter_id']))
+            elif params['action'] == 'play':
+                # Log the video as being played if user is logged in
+                if self.api.logged_in:
+                    self.api.log_video(int(params['video_id']))
+                self.play_video(int(params['course_id']), int(params['video_id']))
+            elif params['action'] == 'show_access_error':
+                self.show_access_error()
+            elif params['action'] == 'list_my_courses':
+                self.list_my_courses()
+            elif params['action'] == 'refresh_login':
+                self.refresh_login()
+        else:
+            self.ga.track('list_root_options')
+
+            cookiejar = util.load_data(addon, self.COOKIE_FILE_NAME)
+            if cookiejar:
+                self.api = LyndaApi(cookiejar)
+            else:
+                self.api = LyndaApi()
+
+            auth_type = xbmcplugin.getSetting(__handle__, "auth_type")
+
+            # Try to log the user in if necessary
+            if not self.api.logged_in and auth_type != 'None':
+                self.login(auth_type)
+
+            # Save cookie jar to disk so other screens in addon can resume session
+            if not util.save_data(addon, self.COOKIE_FILE_NAME, self.api.get_cookies()):
+                xbmcgui.Dialog().ok(addonname, "Could not save lynda session cookies")
+
+            self.list_root_options()
+
 
 if __name__ == '__main__':
-    __visitor__ = get_visitorid()
-    # Call the router function and pass the plugin call parameters to it.
-    router(sys.argv[2])
+    lynda_addon = LyndaAddon()
+
+    # Call the router function and pass the plugin call parameters to it
+    lynda_addon.router(sys.argv[2])

@@ -1,4 +1,5 @@
 # plugin.video.lynda
+
 An XBMC / Kodi addon that allows the user to watch Lynda.com courses.
 
 I made this plugin as there seemed to be a demand for it and it didn't exist. I use a Raspberry Pi running OpenElec (Kodi) at home and I wanted to be able to easily watch Lynda.com courses on the T.V.
@@ -11,6 +12,17 @@ I made this plugin as there seemed to be a demand for it and it didn't exist. I 
 
 # Notes
 
-- Supported login types: Regular Lynda.com accounts, Library Accounts, Organisational Accounts
+- Supported login types: Regular Lynda.com accounts, Organisational accounts (including school accounts)*, IP Site license accounts
 
-- Currently, some of the lists of items returned by the parser are quite long as I haven't implemented any form of pagination yet. I may do this in the future.
+* See the notes below on how to login to organisational accounts.
+
+# Logging into Organisational Accounts
+
+Previously this addon attempted to parse the login forms of your organisation's sites. This caused a lot of problems.
+To make this work properly for everyone, you now have to manually enter a valid login token.
+
+1. Go to lynda.com and log in to your organisational account.
+2. Copy the 'token' cookie value from Dev Tools. E.g. in Chrome, open Dev Tools with Ctrl+Shift+I. Go to the 'Application' tab. Select 'Cookies' in the sidebar and the lynda.com domain. Double click the value field of the 'token' cookie and copy it.
+3. Create a file in this addons user data directory (you may want to have run the addon at least once to create this directory) called 'user_login_token' and paste the token value in the file. If your Kodi box is remote, you can do this via SSH. On Linux, the directory might be something like `/home/yourusername/.kodi/userdata/addon_data/plugin.video.lynda`.
+4. In the Lynda.com addon settings make sure to select the 'Organisation' login type.
+5. Start the addon. If it says you're not logged in, try exiting the addon and running it once again.
