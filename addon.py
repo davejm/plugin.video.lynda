@@ -10,6 +10,7 @@ import requests
 
 import util
 from resources.lib.lynda_api import LyndaApi
+from google_analytics import GoogleAnalytics
 
 addon = xbmcaddon.Addon()
 addonname = addon.getAddonInfo('name')
@@ -25,6 +26,9 @@ __version__ = addon.getAddonInfo("version")
 class LyndaAddon:
     COOKIE_FILE_NAME = 'lynda_cookies'
     TOKEN_USER_INPUT = 'user_login_token'
+
+    def __init__(self):
+        self.ga = GoogleAnalytics(addon, __version__)
 
     def show_listing(self, listing):
         """Show a listing on the screen."""
@@ -188,6 +192,9 @@ class LyndaAddon:
         params = dict(parse_qsl(paramstring[1:]))
 
         if params:
+            if params['action'] != 'play':
+                self.ga.track(params['action'])
+
             # Cookiejar should definitely exist by now. Even if empty
             cookiejar = util.load_data(addon, self.COOKIE_FILE_NAME)
             self.api = LyndaApi(cookiejar)
@@ -210,6 +217,8 @@ class LyndaAddon:
             elif params['action'] == 'refresh_login':
                 self.refresh_login()
         else:
+            self.ga.track('list_root_options')
+
             cookiejar = util.load_data(addon, self.COOKIE_FILE_NAME)
             if cookiejar:
                 self.api = LyndaApi(cookiejar)
