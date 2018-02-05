@@ -10,6 +10,8 @@ I made this plugin as there seemed to be a demand for it and it didn't exist. I 
 2. Copy the folder 'plugin.video.lynda' to your XBMC / Kodi addons directory (Linux is usually ~/.kodi/addons and Windows is usually somewhere in %APPDATA%\kodi\addons). If you are using Kodi on a RaspberryPi or a headless system, you should be able to SSH into the device and SCP/SFTP the folder over. There are plenty of instructions online for how to do this.
 3. Configure the plugin settings (by right clicking/long pressing on the addon in Kodi) with your login credentials.
 
+* Note that simply copying the folder to your addons will not cause Kodi to install some dependecies of this addon. You may have better luck zipping up the plugin.video.lynda folder and installing from zip on Kodi - installing from zip DOES trigger dependecy installation.
+
 # Notes
 
 - Supported login types: Regular Lynda.com accounts, Organisational accounts (including school accounts)*, IP Site license accounts
